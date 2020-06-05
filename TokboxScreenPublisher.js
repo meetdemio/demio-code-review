@@ -6,6 +6,7 @@ import { emitLocalEvent, onLocalEvent } from 'libs/localEvents'
 import { tokboxSession } from 'libs/TokboxSession'
 import { onPublisherMediaStopped, onPublisherStreamDestroyed } from 'libs/TokboxSessionHelpers'
 import { publisherOptions } from 'libs/TokboxPublisher'
+import { tokboxSubscribe } from 'libs/TokboxSubscriber'
 import { Kit } from 'demio-ui-kit/src'
 
 const { notification } = Kit
@@ -22,6 +23,8 @@ function setScreenPublisherHandlers (myPublisher) {
     },
     streamCreated: ({ stream }) => {
       emitLocalEvent('indicate:majorissue', null)
+      // Stream monitor from network
+      tokboxSubscribe({ stream, options: { testNetwork: true }, className: 'is-publisher-monitor' })
       emitLocalEvent('TokboxSession:streamCreated', { ...stream, demioVideoElement: myPublisher.demioVideoElement })
       emitLocalEvent('ScreenSharing:started', myPublisher.demioVideoElement)
     },

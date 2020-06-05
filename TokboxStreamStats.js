@@ -1,16 +1,17 @@
 import OpenTok from '@opentok/client'
 
 let timer
-let subscriberStatsByID = {}
-let publisherStatsByID = {}
+const subscriberStatsByID = {}
+const publisherStatsByID = {}
 
-const videoFrameRate = (stream) => {
-  let frameRate = 30
+const getFrameRate = (type, stream) => {
+  let frameRate = 0
 
   return () => {
     setTimeout(() => stream.getStats((error, stats) => {
       if (error) return
-      frameRate = stats.video.frameRate
+      const theStats = type === 'publisher' ? stats[0].stats : stats
+      frameRate = theStats.video.frameRate
     }))
     return frameRate
   }
@@ -30,7 +31,7 @@ const getBitRate = (stream, type, track) => {
   let kbps = 0
 
   return () => {
-    stream.getStats((error, stats) => {
+    setTimeout(() => stream.getStats((error, stats) => {
       if (error) return kbps
       const theStats = type === 'publisher' ? stats[0].stats : stats
 
@@ -43,43 +44,59 @@ const getBitRate = (stream, type, track) => {
       if (current && last) {
         kbps = Math.round(calculateBitRate(type, track, current, last) / 1000)
       }
-    })
+    }))
     return kbps
   }
 }
 
-const getStreamStats = ({ statsByID, type }) => (stream) => {
+const getStreamStats = ({ stream, type, statsByID }) => {
   const stats = statsByID[stream.streamId]
 
   if (!stats) {
     statsByID[stream.streamId] = {
       getVideoBitRate: getBitRate(stream, type, 'video'),
       getAudioBitRate: getBitRate(stream, type, 'audio'),
-      getVideoFrameRate: videoFrameRate(stream),
+      getVideoFrameRate: getFrameRate(type, stream),
       loading: true
     }
-  } else {
-    const { getAudioBitRate, getVideoBitRate, getVideoFrameRate } = stats
-    stats.audioBitRate = getAudioBitRate()
-    stats.videoBitRate = getVideoBitRate()
-    stats.videoFrameRate = getVideoFrameRate()
-    stats.loading = !(stats.videoBitRate || stats.audioBitRate)
-  } 
+
+    return statsByID[stream.streamId] 
+  }
+
+  const { getAudioBitRate, getVideoBitRate, getVideoFrameRate } = stats
+  stats.audioBitRate = getAudioBitRate()
+  stats.videoBitRate = getVideoBitRate()
+  stats.videoFrameRate = getVideoFrameRate()
+  stats.loading = !(stats.videoBitRate || stats.audioBitRate)
+
+  return stats
 }
 
-export const getStats = (streamId) => {
+const startStats = () => {
   if (!timer) {
+    const { publishers, subscribers } = OpenTok
+
     timer = setInterval(() => {
-      OpenTok.publishers.where().forEach(getStreamStats({ 
-        type: 'publisher',
-        statsByID: publisherStatsByID
-      }))
-      OpenTok.subscribers.where().forEach(getStreamStats({ 
-        type: 'subscriber', 
-        statsByID: subscriberStatsByID, 
-      }))
+      publishers.where()
+        .forEach((stream) => getStreamStats({ 
+          stream,
+          type: 'publisher',
+          statsByID: publisherStatsByID
+        }))
+      subscribers.where()
+        .forEach((stream) => getStreamStats({ 
+          stream,
+          type: 'subscriber', 
+          statsByID: subscriberStatsByID
+        }))
     }, 1000)
   }
+}
+
+export const stopStats = () => clearInterval(timer)
+
+export const getStats = (streamId) => {
+  startStats()
   
   return {
     subscriber: subscriberStatsByID[streamId] || {},
@@ -87,4 +104,3 @@ export const getStats = (streamId) => {
   }
 }
 
-export const stopStats = () => clearInterval(timer)

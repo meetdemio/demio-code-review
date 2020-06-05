@@ -1,4 +1,5 @@
 import debug from 'debug'
+import OpenTok from '@opentok/client'
 import { emitLocalEvent, onLocalEvent } from 'libs/localEvents'
 import { autoplayStream, destroyAutoplayStream } from 'libs/audioAutoplay'
 import { tokboxSession } from 'libs/TokboxSession'
@@ -16,18 +17,20 @@ const subscriberOptions = {
   preferredResolution: {
     width: 1280,
     height: 720
-  },
-  // @TODO restrictFrameRate(true) false to disable t
-  // @TODO setPreferredResolution({width: 320, height: 240}) or 640x480"? null to disabled it
+  }
 }
 
 export function tokboxSubscribe ({ stream, options: { testNetwork, ...options } = {}, className }) {
-   // @TODO fix for stream duplication??
+  // @TODO do we still need the fix for duplicated stream??
+  // Probably that was a bug in the previous integration
   let audioLevel = 0
 
   const subscription = tokboxSession
     .subscribe(stream, { ...subscriberOptions, testNetwork, ...options } , (error) => {
-      if (error) return console.error(error)
+      if (error) {
+        log(error)
+        return console.error(error)
+      }
     })
     .on('videoElementCreated', ({ element }) => {
       const demioVideoElement = autoplayStream({ 
@@ -37,6 +40,7 @@ export function tokboxSubscribe ({ stream, options: { testNetwork, ...options } 
       }) 
       subscription.demioVideoElement = demioVideoElement
       emitLocalEvent('TokboxSession:streamCreated', { ...subscription.stream, demioVideoElement, testNetwork })
+      log('Subscriber:videoElementCreated', element)
     })
     .on('audioLevelUpdated', (event) => {
       audioLevel = getAudioLevelUpdated(event, audioLevel, (siglevel) => {
@@ -50,7 +54,20 @@ export function tokboxSubscribe ({ stream, options: { testNetwork, ...options } 
           }
         }
       })
+      // log('Subscriber:audioLevelUpdated', event)
     })
     
   return subscription
+}
+
+// TODO: Use for the layout with shared materials because the webcam size is much smaller
+export function restrictFrameRate ({ streamID, restrict = true }) {
+  const [subscriber] = OpenTok.subscribers.where({ streamID })
+  if (subscriber) subscriber.restrictFrameRate(restrict)
+}
+
+export function setPreferredResolution ({ streamID, unset = false }) {
+  const [subscriber] = OpenTok.subscribers.where({ streamID })
+  // 320x240 or 640x480??
+  if (subscriber) subscriber.setPreferredResolution(unset ? null : { width: 320, height: 240 }) 
 }

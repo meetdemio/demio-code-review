@@ -167,7 +167,8 @@ function publish ({ micEnabled, camEnabled, name, lastname }) {
     publisher.demioCamEnabled = camEnabled
     publisher.publishVideo(camEnabled)
   }
-  // TODO: Update layout - render a react component, a portal?
+  // TODO: Update layout rendering a react component, maybe a portal?
+  // For now we append the video only
   emitLocalEvent('TokboxSession:streamUpdated', { ...publisher, hasAudio: micEnabled, hasVideo: camEnabled })
 }
 
