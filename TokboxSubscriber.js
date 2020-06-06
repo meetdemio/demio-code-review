@@ -61,13 +61,19 @@ export function tokboxSubscribe ({ stream, options: { testNetwork, ...options } 
 }
 
 // TODO: Use for the layout with shared materials because the webcam size is much smaller
-export function restrictFrameRate ({ streamID, restrict = true }) {
-  const [subscriber] = OpenTok.subscribers.where({ streamID })
-  if (subscriber) subscriber.restrictFrameRate(restrict)
+export function restrictFrameRate (enable) {
+  OpenTok.subscribers
+    .where({ videoType: 'camera' })
+    .forEach((subscriber) => {
+      subscriber.restrictFrameRate(enable)
+    })
 }
 
-export function setPreferredResolution ({ streamID, unset = false }) {
-  const [subscriber] = OpenTok.subscribers.where({ streamID })
-  // 320x240 or 640x480??
-  if (subscriber) subscriber.setPreferredResolution(unset ? null : { width: 320, height: 240 }) 
+export function setPreferredResolution (enable) {
+  OpenTok.subscribers
+    .where({ videoType: 'camera' })
+    .forEach((subscriber) => {
+      // 320x240 or 640x480??
+      subscriber.setPreferredResolution(enable ? { width: 320, height: 240 } : null) 
+    })
 }
