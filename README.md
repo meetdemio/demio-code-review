@@ -36,11 +36,21 @@ The following files are in this repo for a code review to find possible ways to 
 
   Creates silent videos with permissions to autoplay audio because are created right after the user clicks on the button to join the room. Then when a stream is created uses a video with permissions updating the srcObject attribute with the MediaStream from the video created by Tokbox.
 
+# Flow Diagrams
+
+![](diagrams/diagram-websocket.jpeg)
+
+![](diagrams/diagram-publisher.jpeg)
+
+![](diagrams/diagram-screen-publisher.jpeg)
+
 # Test in a Session
+The Demio Viewer prototype is not online yet. It's coming soon! 
 
-We use these files for the integration of Tokbox in Demio Viewer, here join links for the session:
+Here join links for the session:
 
-- Presenter 1: https://event.staging.demio.com/join/[demo-hash]
-- Presenter 2: https://event.staging.demio.com/join/[demo-hash]
+- Presenter 1: https://event.staging.demio.com/join/[user-hash]
+- Presenter 2: https://event.staging.demio.com/join/[user-hash]
+- Reg page for attendees: https://my.staging.demio.com/ref/[event-hash]
 
 The features for attendeees to subcribe and even publish when they are granted pemissions to share their devices is still pending.
