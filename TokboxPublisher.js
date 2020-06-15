@@ -28,7 +28,7 @@ const publisherOptions = {
   // 48000-64000 (Music - Highest quality)
   audioBitrate: 40000,
   facingMode: 'user', // or 'environment'
-  frameRate: 30, // or 30 (monitor with MediaStreamTrack.getConstraints())
+  frameRate: 30, // or 15 (monitor with MediaStreamTrack.getConstraints())
   maxResolution: { // For screen sharing
     width: 1280,
     height: 720
@@ -95,7 +95,7 @@ function onInitPublisherError ({ error, error: { name } = {}, options: { videoSo
   log('initPublisher error', error)
 }
 
-function createPublisher ({ micEnabled, camEnabled, name, lastname }, { smart } = {}) {
+function createPublisher ({ micEnabled, camEnabled, name, lastname, userID }, { smart } = {}) {
   const options = getPublisherOptions({ micEnabled, camEnabled, name, lastname }, { smart })
   let myPublisher = OpenTok.initPublisher(options, (error) => error && onInitPublisherError({ error, options }))
 
@@ -126,7 +126,7 @@ function createPublisher ({ micEnabled, camEnabled, name, lastname }, { smart } 
       // Real stream from webcam
       const demioVideoElement = autoplayStream(myPublisher) 
       myPublisher.demioVideoElement = demioVideoElement
-      emitLocalEvent('TokboxSession:streamCreated', { ...stream, demioVideoElement })
+      emitLocalEvent('TokboxSession:streamCreated', { ...stream, demioVideoElement, userID })
     },
     streamDestroyed (event) {
       if (event.reason !== 'reset') {
@@ -156,8 +156,8 @@ function createPublisher ({ micEnabled, camEnabled, name, lastname }, { smart } 
   return myPublisher
 }
 
-function publish ({ micEnabled, camEnabled, name, lastname }) {
-  if (!publisher) return initPublisher ({ micEnabled, camEnabled, name, lastname  })
+function publish ({ micEnabled, camEnabled, name, lastname, userID }) {
+  if (!publisher) return initPublisher ({ micEnabled, camEnabled, name, lastname, userID })
   
   if (micEnabled !== publisher.demioMicEnabled) {
     publisher.demioMicEnabled = micEnabled
@@ -167,15 +167,14 @@ function publish ({ micEnabled, camEnabled, name, lastname }) {
     publisher.demioCamEnabled = camEnabled
     publisher.publishVideo(camEnabled)
   }
-  // TODO: Update layout rendering a react component, maybe a portal?
-  // For now we append the video only
-  emitLocalEvent('TokboxSession:streamUpdated', { ...publisher, hasAudio: micEnabled, hasVideo: camEnabled })
+  // TODO: Update layout - render a react component, a portal?
+  emitLocalEvent('TokboxSession:streamUpdated:publisher', { ...publisher, hasAudio: micEnabled, hasVideo: camEnabled, userID })
 }
 
-function initPublisher ({ micEnabled, camEnabled, name, lastname }) {    
+function initPublisher ({ micEnabled, camEnabled, name, lastname, userID }) {    
   if (!micEnabled && !camEnabled) return
 
-  publisher = createPublisher({ micEnabled, camEnabled, name, lastname }, { smart: true })
+  publisher = createPublisher({ micEnabled, camEnabled, name, lastname, userID }, { smart: true })
   tokboxSession.publish(publisher, (error) => {
     if (error) {
       publisher = null
@@ -186,5 +185,24 @@ function initPublisher ({ micEnabled, camEnabled, name, lastname }) {
   })
 }
 
+function changeAudioSource ({ micDevID, micEnabled }) {
+  publisher.setAudioSource(micDevID)
+  // Is required to re-publish the audio?
+  if (micEnabled) publisher.publishAudio(true)
+}
+
+function changeVideoSource ({ micDevID, camEnabled }) {
+  publisher.cycleVideo()
+    .then(({ deviceId }) => {
+      // Recursive call because maybe there is more than one webcam?
+      if (deviceId !== micDevID) changeVideoSource({ micDevID, camEnabled })
+    })
+    .catch(error => {
+      console.error(error)
+    })
+  // Is required to re-publish the video?
+  // if (camEnabled) publisher.publishVideo(true)
+}
+
 export default publisher
-export { initPublisher, publish, destroyPublisher, getPublisherOptions, publisherOptions }
+export { initPublisher, publish, destroyPublisher, getPublisherOptions, changeAudioSource, changeVideoSource, publisherOptions }

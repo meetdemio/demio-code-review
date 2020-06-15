@@ -18,11 +18,11 @@ The following files are in this repo for a code review to find possible ways to 
 
 - **TokboxPublisher.js**
 
-  Handles the publisher initialization, publication of audio and video streams, errors and attaches the publisher event listeners. Subcribes to its own stream for monitoring the stats to provide use notifications about the streaming quaility. Uses our hack for the audio autoplay.
+  Handles the publisher initialization, publication of audio and video streams, change of the audio or video input. Handles errors and attaches the publisher event listeners. Subcribes to its own stream for monitoring the stats about the streaming quality. Uses our hack for the audio autoplay.
 
 - **TokboxScreenPublisher.js**
 
-  Handles the publisher initialization, publication of screen-sharing, errors and attaches the publisher event listeners. Subcribes to its own stream for monitoring the stats to provide use notifications about the streaming quaility. 
+  Handles the publisher initialization, publication of screen-sharing, errors and attaches the publisher event listeners. Subcribes to its own stream for monitoring the stats about the streaming quality. 
 
 - **TokboxSubscriber.js**
 
